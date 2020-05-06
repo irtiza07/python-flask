@@ -8,9 +8,26 @@
 <body>
   <h1>Welcome to WWW of 1995!</h1>
   <br>
-  <h2><span id="connected">{{ connected }}</span> 
-    users are on this page right now.
+  <h2>
+    This is the homepage. My user_id is {{ user_id }}
   </h2>
+  <button id='share-button'>Share please</button>
+  <button id='play-button'>Play button</button>
+
+  <audio id='backing-track' controls>
+    <source src="/static/backing_track.wav">
+  </audio>
+
+  <video id='backing-video' muted loop>
+    <source src="/static/backing-video.mp4" type="video/mp4" >
+  </video>
+  <br>
+  <br>
+  <button id='sound_1'>Tune 1</button>
+  <button id='sound_2'>Tune 2</button>
+  <br>
+  <br>
+  <button id='game-finish'>Finish</button>
 
   <script type="text/javascript" 
     src="http://code.jquery.com/jquery-1.11.1.min.js">
@@ -21,10 +38,39 @@
     $(document).ready(() => {
       const url = "http://" + document.domain + ":" + location.port;
       const socket = io.connect(url + "/dd");
-      socket.on('share-link', (link) => {
-        console.log(link)
+
+      $('#share-button').click(() => {
+        console.log("Share button clicked")
+        socket.emit('share-requested', (share_link) => {
+          console.log(share_link)
+        })
       });
+
+      $('#game-finish').click(() => {
+        console.log("Finish button clicked")
+        socket.emit('game-finish')
+        $('#backing-track')[0].pause()
+        $('#backing-video')[0].pause()
+      });
+
+      socket.on('sample-sound-played', (sound_payload) => {
+        console.log("Sample sound played")
+        new Audio(`static/${sound_payload['sound']}.wav`).play()
+      })
+
+      $('#play-button').click(() => {
+        socket.emit('game-started')
+        $('#backing-track')[0].play()
+        $('#backing-video')[0].play()
+      })
+
+      $('#sound_1, #sound_2').click((event) => {
+        const song = event.target.id
+        socket.emit('sample-sound-played', {'sound': song, 'moment': $('#backing-track')[0].currentTime })
+        new Audio(`static/${song}.wav`).play()
+      })
     });
+
   </script>
 </body>
 </html>

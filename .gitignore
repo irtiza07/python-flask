@@ -1,1 +1,6 @@
 /env
+.DS_Store
+combined.wav
+output.mp4
+../templates/.DS_Store
+

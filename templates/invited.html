@@ -11,17 +11,50 @@
   </script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
 
-  <h1>You have been invited to room</h1>
+  <h1>You have been invited to room {{ room_id }}</h1>
+
+  <audio id='backing-track' controls>
+    <source src="/static/backing_track.wav">
+  </audio>
+
+  <video id='backing-video' muted loop>
+    <source src="/static/backing-video.mp4" type="video/mp4" >
+  </video>
+  <br>
+  <br>
+  <button id='sound_1'>Tune 1</button>
+  <button id='sound_2'>Tune 2</button>
+
   <script type="text/javascript">
     $(document).ready(() => {
+      const urlParams = new URLSearchParams(window.location.search);
       const url = "http://" + document.domain + ":" + location.port;
       const socket = io.connect(url + "/dd");
-      socket.emit('join-room', {})
-      
-      socket.on('share-link', (link) => {
-        console.log(link)
-      });
+      socket.emit('share-accepted', urlParams.get('room_id'))
+
+      socket.on('game-started', () => {
+        console.log("Admin kicked game off")
+        $('#backing-track')[0].play()
+        $('#backing-video')[0].play()
+      })
+
+      socket.on('game-finish', () => {
+        $('#backing-track')[0].pause()
+        $('#backing-video')[0].pause()
+      })
+
+      socket.on('sample-sound-played', (sound_payload) => {
+        console.log("Sample sound played")
+        new Audio(`static/${sound_payload['sound']}.wav`).play()
+      })
+
+      $('#sound_1, #sound_2').click((event) => {
+        const song = event.target.id
+        socket.emit('sample-sound-played', {'sound': song, 'moment': $('#backing-track')[0].currentTime })
+        new Audio(`static/${song}.wav`).play()
+      })
     });
+
   </script>
 </body>
 </html>
