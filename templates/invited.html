@@ -14,16 +14,13 @@ src="http://code.jquery.com/jquery-1.11.1.min.js">
 <body class='full-container'>
   <div class="left-panel">
     <h1>You have been invited to room {{ room_id }}</h1>
-    <video id='backing-video' muted loop>
+    <video id='backing-video' muted loop width="640" height="480">
       <source src="/static/backing-video.mp4" type="video/mp4" >
     </video>
     <audio id='backing-track'>
       <source src="/static/backing_track.wav">
     </audio>
     <div class="buttons-container">
-      <button class="w3-button w3-green w3-xxlarge my-button" id='share-button'>Make Party</button>
-      <button class="w3-button w3-green w3-xxlarge my-button" id='play-button'>Play Button</button>
-      <button class="w3-button w3-green w3-xxlarge my-button" id='game-finish'>Finish</button>
     </div>
   </div>
   <div class="right-panel">

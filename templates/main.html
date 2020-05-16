@@ -14,7 +14,7 @@
 </head>
 <body class="full-container">
   <div class="left-panel">
-    <video id='backing-video' muted loop>
+    <video id='backing-video' muted loop width="640" height="480">
       <source src="/static/backing-video.mp4" type="video/mp4" >
     </video>
     <audio id='backing-track'>
@@ -22,8 +22,10 @@
     </audio>
     <div class="buttons-container">
       <button class="w3-button w3-green w3-xxlarge my-button" id='share-button'>Make Party</button>
-      <button class="w3-button w3-green w3-xxlarge my-button" id='play-button'>Play Button</button>
+      <button class="w3-button w3-green w3-xxlarge my-button" id='play-button'>Play</button>
       <button class="w3-button w3-green w3-xxlarge my-button" id='game-finish'>Finish</button>
+      <button class="w3-button w3-green w3-xxlarge my-button" id=record>Record Voice</button>
+      <button class="w3-button w3-green w3-xxlarge my-button" id=stopRecord disabled>Stop Recording</button>
     </div>
   </div>
   <div class="right-panel">
@@ -35,6 +37,42 @@
     $(document).ready(() => {
       const url = "http://" + document.domain + ":" + location.port;
       const socket = io.connect(url + "/dd");
+      let audioStream = []
+
+      navigator.mediaDevices.getUserMedia({audio:true})
+        .then(stream => {handlerFunction(stream)})
+
+      function handlerFunction(stream) {
+        rec = new MediaRecorder(stream);
+        rec.ondataavailable = e => {
+          audioStream.push(e.data)
+        }
+        rec.onstop = e => {
+          let blob = new Blob(audioStream, {type:'audio/wav'});
+          audioStream = []
+          sendData(blob)
+        }
+      }
+      function sendData(blob) {
+        console.log("Sending data..")
+        console.log(blob)
+        socket.emit('recorded-audio', {'audio_payload': blob, 'moment': $('#backing-track')[0].currentTime})
+      }
+      record.onclick = e => {
+        console.log('I was clicked')
+        record.disabled = true;
+        record.style.backgroundColor = "blue"
+        stopRecord.disabled=false;
+        audioChunks = [];
+        rec.start(5000); //TODO: Need to change this to a very small number
+      }
+      stopRecord.onclick = e => {
+        console.log("I was clicked")
+        record.disabled = false;
+        stop.disabled=true;
+        record.style.backgroundColor = "red"
+        rec.stop();
+      }
 
       $('#share-button').click(() => {
         console.log("Share button clicked")

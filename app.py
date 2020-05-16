@@ -1,4 +1,6 @@
 import uuid
+import sys
+import io
 
 from gevent import monkey
 from collections import namedtuple
@@ -12,6 +14,7 @@ from moviepy.editor import VideoFileClip, AudioFileClip, concatenate_videoclips
 from pydub import AudioSegment
 
 SoundOverlay = namedtuple('SoundOverlay', ['time_in_seconds', 'overlay_song_title'])
+RecordedOverlay = namedtuple('RecordedOverlay', ['time_in_seconds', 'audio_in_bytes'])
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -19,9 +22,14 @@ socketio = SocketIO(app)
 unique_sessions = set()
 room_assignments = {} ## {sid : room_id}
 sound_overlays = []
+recorded_overlays = []
 
 def generate_share_link(admin_sid):
-  return f'http://127.0.0.1:5000/invited?room_id={admin_sid}'
+  return f'http://192.168.7.90:5000/invited?room_id={admin_sid}'
+
+def process_recorded_audio(audio_payload, moment_in_milliseconds):
+  AudioSegment.from_file(audio_in_bytes)
+  print("Done processing audio..")
 
 def process_song():
   song = AudioSegment.from_wav('./static/backing_track.wav')
@@ -33,6 +41,12 @@ def process_song():
     song = song.overlay(
       sample_dict[overlay.overlay_song_title],
       float(overlay.time_in_seconds)*1000
+    )
+  for record_overlay in recorded_overlays:
+    audio_in_bytes = io.BytesIO(record_overlay.audio_in_bytes)
+    song = song.overlay(
+      AudioSegment.from_file(audio_in_bytes),
+      float(record_overlay.time_in_seconds)*1000
     )
   print("Starting file export")
   song.export("combined.wav", format="wav")
@@ -62,6 +76,7 @@ def ws_conn():
   # socketio.emit('share-link', {'link_url': f'http://127.0.0.1:5000/invited?room_id={room_id}'}, namespace='/dd')
   print("Connected")
   unique_sessions.add(request.sid)
+  room_assignments[request.sid] = request.sid ##TODO: Might need to remove this
 
 @socketio.on('share-requested', namespace='/dd')
 def ws_share_requested():
@@ -94,6 +109,15 @@ def on_sound_played(sound_payload):
   print(f'Admin played sound {sound} at {moment} of backing track')
   emit('sample-sound-played', {'sound':sound}, room=room_assignments[request.sid])
 
+@socketio.on('recorded-audio', namespace='/dd')
+def on_recorded_audio(payload):
+  recorded_overlays.append(
+    RecordedOverlay(
+      time_in_seconds=payload['moment'],
+      audio_in_bytes=payload['audio_payload']
+    )
+  )
+
 @socketio.on('game-finish', namespace='/dd')
 def on_finish():
   print("Admin kicked off the game")
@@ -101,6 +125,5 @@ def on_finish():
   process_song()
   process_video()
 
-
 if __name__ == '__main__':
-  socketio.run(app, debug=False)
+  socketio.run(app)
